@@ -1,0 +1,1598 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Crypto Mining & Earning Mini App</title>
+
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- AdsGram SDK -->
+  <script src="https://sad.adsgram.ai/js/sad.min.js"></script>
+
+  <!-- Firebase App & Services -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <style>
+    :root {
+      --bg-primary: #0b0f19;
+      --bg-secondary: #131b2e;
+      --accent: #f59e0b;
+      --accent-glow: rgba(245, 158, 11, 0.3);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --danger: #ef4444;
+      --border: #1e293b;
+      --radius: 16px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      overflow-x: hidden;
+      padding-bottom: 95px;
+    }
+
+    /* Minimal Header: Only Logo/Avatar & Name */
+    header {
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      background: rgba(19, 27, 46, 0.85);
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .user-pill {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .user-pill img {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 2px solid var(--accent);
+      object-fit: cover;
+      box-shadow: 0 0 10px var(--accent-glow);
+    }
+
+    .user-pill .name {
+      font-weight: 800;
+      font-size: 16px;
+      color: #fff;
+    }
+
+    .views-container {
+      padding: 16px;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    .view-section {
+      display: none;
+      animation: fadeIn 0.25s ease-in-out;
+    }
+
+    .view-section.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card {
+      background: var(--bg-secondary);
+      border-radius: var(--radius);
+      padding: 18px;
+      border: 1px solid var(--border);
+      margin-bottom: 16px;
+      position: relative;
+    }
+
+    .balance-card {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border: 1px solid #f59e0b40;
+      text-align: center;
+      padding: 24px;
+    }
+
+    .balance-title {
+      font-size: 13px;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    .balance-amount {
+      font-size: 34px;
+      font-weight: 800;
+      color: #fff;
+      margin: 6px 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .quick-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .quick-btn {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 10px 4px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+    }
+
+    /* Tap Section */
+    .tap-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin: 20px 0;
+      position: relative;
+    }
+
+    .tap-coin-btn {
+      width: 200px;
+      height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #f59e0b 20%, #b45309 85%);
+      box-shadow: 0 0 35px var(--accent-glow), inset 0 0 15px #fef3c7;
+      border: 5px solid #fde68a;
+      font-size: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.08s ease;
+      touch-action: manipulation;
+    }
+
+    .tap-coin-btn:active {
+      transform: scale(0.94);
+    }
+
+    .floating-text {
+      position: absolute;
+      color: #fef08a;
+      font-size: 26px;
+      font-weight: 800;
+      pointer-events: none;
+      animation: floatUp 0.8s ease-out forwards;
+    }
+
+    @keyframes floatUp {
+      0% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-70px); }
+    }
+
+    .energy-bar-wrap {
+      width: 100%;
+      background: #090d16;
+      height: 12px;
+      border-radius: 6px;
+      margin: 12px 0 6px 0;
+      overflow: hidden;
+    }
+
+    .energy-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #10b981, #059669);
+      width: 100%;
+      transition: width 0.2s ease;
+    }
+
+    /* AdsGram Card */
+    .adsgram-banner {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(245, 158, 11, 0.03));
+      border: 1px dashed var(--accent);
+      padding: 16px;
+      border-radius: var(--radius);
+      margin: 16px 0;
+      text-align: center;
+    }
+
+    .btn-action {
+      background: var(--accent);
+      color: #000;
+      font-weight: 700;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 14px;
+      width: 100%;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+
+    .btn-action:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .btn-action:active:not(:disabled) {
+      opacity: 0.85;
+      transform: scale(0.99);
+    }
+
+    .btn-secondary {
+      background: #334155;
+      color: #fff;
+    }
+
+    .btn-upgrade {
+      background: linear-gradient(135deg, #8b5cf6, #6366f1);
+      color: #fff;
+    }
+
+    /* TOP 3 GLOWING PUDDING PODIUM */
+    .podium-container {
+      display: grid;
+      grid-template-columns: 1fr 1.15fr 1fr;
+      gap: 10px;
+      align-items: flex-end;
+      margin-bottom: 22px;
+    }
+
+    .pudding-top {
+      border-radius: 24px;
+      padding: 14px 10px;
+      text-align: center;
+      position: relative;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.4), inset 0 2px 4px rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.1);
+      transition: transform 0.2s ease;
+    }
+
+    .pudding-top:active {
+      transform: scale(0.96);
+    }
+
+    /* #1 Gold Champion */
+    .pudding-gold {
+      background: linear-gradient(145deg, #2a2008, #181305);
+      border: 2px solid #f59e0b;
+      box-shadow: 0 0 25px rgba(245, 158, 11, 0.4), inset 0 2px 6px rgba(254, 240, 138, 0.3);
+      padding: 20px 10px;
+    }
+
+    /* #2 Silver */
+    .pudding-silver {
+      background: linear-gradient(145deg, #1e293b, #0f172a);
+      border: 2px solid #94a3b8;
+      box-shadow: 0 0 18px rgba(148, 163, 184, 0.3);
+    }
+
+    /* #3 Bronze */
+    .pudding-bronze {
+      background: linear-gradient(145deg, #24140b, #130a05);
+      border: 2px solid #b45309;
+      box-shadow: 0 0 18px rgba(180, 83, 9, 0.3);
+    }
+
+    .podium-badge {
+      font-size: 22px;
+      margin-bottom: 6px;
+    }
+
+    .podium-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      border: 2px solid #fff;
+      margin: 0 auto 6px auto;
+      object-fit: cover;
+    }
+
+    .pudding-gold .podium-avatar {
+      width: 56px;
+      height: 56px;
+      border-color: #f59e0b;
+    }
+
+    .podium-name {
+      font-weight: 800;
+      font-size: 13px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 2px;
+    }
+
+    .podium-score {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--accent);
+    }
+
+    /* Regular Pudding List (Rank 4+) */
+    .pudding-row {
+      background: linear-gradient(145deg, #141b2d, #0c111e);
+      border-radius: 18px;
+      padding: 12px 16px;
+      margin-bottom: 10px;
+      box-shadow: 0 6px 14px rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .row-rank {
+      font-size: 13px;
+      font-weight: 800;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-muted);
+    }
+
+    /* Bottom Navigation */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(11, 15, 25, 0.95);
+      backdrop-filter: blur(15px);
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-around;
+      padding: 10px 0;
+      z-index: 1000;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      color: var(--text-muted);
+      font-size: 11px;
+      cursor: pointer;
+      background: none;
+      border: none;
+      flex: 1;
+    }
+
+    .nav-item.active {
+      color: var(--accent);
+      font-weight: 700;
+    }
+
+    .nav-item svg {
+      width: 22px;
+      height: 22px;
+      fill: currentColor;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(4px);
+      z-index: 2000;
+      display: none;
+      align-items: flex-end;
+    }
+
+    .modal-sheet {
+      background: var(--bg-secondary);
+      border-top: 1px solid var(--border);
+      border-radius: 24px 24px 0 0;
+      padding: 24px 20px;
+      width: 100%;
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+
+    .input-group {
+      margin-bottom: 14px;
+    }
+
+    .input-group label {
+      display: block;
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+
+    .input-field {
+      width: 100%;
+      background: #0b0f19;
+      border: 1px solid var(--border);
+      padding: 12px;
+      border-radius: 10px;
+      color: #fff;
+      font-size: 14px;
+    }
+
+    .input-field:focus {
+      outline: 1px solid var(--accent);
+    }
+
+    .toast {
+      position: fixed;
+      top: 70px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: #1e293b;
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 30px;
+      font-size: 13px;
+      z-index: 3000;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+      display: none;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 3px 8px;
+      font-size: 10px;
+      font-weight: 700;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+    .badge-pending { background: #eab30825; color: #facc15; }
+    .badge-paid { background: #10b98125; color: #34d399; }
+    .badge-rejected { background: #ef444425; color: #f87171; }
+  </style>
+</head>
+<body>
+
+  <!-- CLEAN HEADER: LOGO / AVATAR & NAME ONLY -->
+  <header>
+    <div class="user-pill">
+      <img id="u-avatar" src="https://via.placeholder.com/80" alt="Avatar" />
+      <div class="name" id="u-name">Loading...</div>
+    </div>
+  </header>
+
+  <div class="toast" id="toast-el">Notification</div>
+
+  <div class="views-container">
+
+    <!-- HOME / TAP VIEW -->
+    <section id="view-home" class="view-section active">
+      <div class="card balance-card">
+        <div class="balance-title"><span class="curr-name">SHIB</span> Coin Balance</div>
+        <div class="balance-amount">
+          <span>🐕</span><span id="txt-balance">0</span> <span style="font-size: 18px; color: var(--accent);" class="curr-name">SHIB</span>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted);">
+          Virtual Credits: <strong id="txt-credits" style="color: #60a5fa;">0.00</strong>
+        </div>
+
+        <div class="quick-grid">
+          <button class="quick-btn" onclick="switchNav('mining')">⛏️ Mining</button>
+          <button class="quick-btn" onclick="switchNav('tasks')">🎯 Tasks</button>
+          <button class="quick-btn" onclick="switchNav('convert')">💱 Convert</button>
+        </div>
+      </div>
+
+      <!-- Tap Area -->
+      <div class="card" style="text-align: center;">
+        <div style="display:flex; justify-content:space-between; font-size:12px; color:var(--text-muted);">
+          <span>Energy Remaining</span>
+          <span id="txt-energy-ratio">1000 / 1000</span>
+        </div>
+        <div class="energy-bar-wrap">
+          <div class="energy-bar-fill" id="energy-bar"></div>
+        </div>
+
+        <div class="tap-area">
+          <button class="tap-coin-btn" id="btn-tap">🐕</button>
+        </div>
+        <div style="font-size: 12px; color: var(--text-muted);">Tap the coin to earn tokens</div>
+      </div>
+
+      <!-- Daily Login Bonus -->
+      <div class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="font-weight: 700; font-size: 14px;">🎁 Daily Attendance Reward</div>
+            <div style="font-size: 12px; color: var(--text-muted);">Claim your free daily bonus</div>
+          </div>
+          <button class="btn-action" style="width: auto; padding: 8px 16px;" id="btn-daily-bonus" onclick="claimDailyBonus()">Claim</button>
+        </div>
+      </div>
+
+      <!-- ADSGRAM OPTIONAL SECTION (ENGLISH) -->
+      <div class="adsgram-banner">
+        <div style="font-size: 12px; text-transform: uppercase; color: var(--accent); font-weight: 800; letter-spacing: 0.5px;">
+          Adsgram Ads
+        </div>
+        <div style="font-size: 13px; color: var(--text-muted); margin: 6px 0 12px 0;">
+          Watch sponsored advertisement to earn extra rewards
+        </div>
+        <button class="btn-action" id="btn-watch-ad" onclick="triggerOptionalAd()">
+          📺 Watch Ad & Get Reward (+<span id="btn-ad-reward-val">20</span> <span class="curr-name">SHIB</span>)
+        </button>
+      </div>
+    </section>
+
+    <!-- MINING VIEW (WITH LIVE TIMER IN THE BUTTON) -->
+    <section id="view-mining" class="view-section">
+      <div class="card">
+        <h3 style="margin-bottom: 8px;">⛏️ Cloud Mining Simulator</h3>
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+          Simulate automatic hourly mining cycles and claim collected coin rewards.
+        </p>
+
+        <div style="background: #0b0f19; padding: 16px; border-radius: 12px; margin-bottom: 14px; border: 1px solid var(--border);">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
+            <span style="color: var(--text-muted);">Mining Status:</span>
+            <span id="txt-mining-status" style="font-weight: 700; color: var(--text-muted);">Inactive</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
+            <span style="color: var(--text-muted);">Mining Level:</span>
+            <span id="txt-mining-lvl" style="color: var(--accent); font-weight: 700;">Level 1</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
+            <span style="color: var(--text-muted);">Mining Rate:</span>
+            <span id="txt-mining-rate-display" style="color: var(--accent); font-weight: 700;">+10 / Hour</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 13px;">
+            <span style="color: var(--text-muted);">Accumulated Coins:</span>
+            <span id="txt-mined-tokens" style="font-weight: 700; color: #fff;">0.00 <span class="curr-name">SHIB</span></span>
+          </div>
+        </div>
+
+        <!-- MAIN MINING BUTTON SHOWING COUNTDOWN TIMER DIRECTLY -->
+        <button class="btn-action" id="btn-toggle-mining" onclick="toggleMining()" style="margin-bottom: 10px;">
+          Start Mining
+        </button>
+        <button class="btn-action btn-secondary" id="btn-claim-mining" onclick="claimMining()" disabled style="margin-bottom: 14px;">
+          Claim Mined Coins
+        </button>
+
+        <!-- Upgrade Mining with Coins -->
+        <div style="background: rgba(139, 92, 246, 0.08); border: 1px dashed #8b5cf6; padding: 14px; border-radius: 12px; text-align: center;">
+          <div style="font-size: 13px; font-weight: 700; color: #c4b5fd; margin-bottom: 4px;">⚡ Upgrade Mining Speed</div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 10px;">
+            Upgrade Cost: <strong style="color:#fff;" id="txt-upgrade-cost">500</strong> <span class="curr-name">SHIB</span> (+5/hr boost)
+          </div>
+          <button class="btn-action btn-upgrade" onclick="upgradeMiningLevel()">Upgrade Mining Level</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TASKS VIEW -->
+    <section id="view-tasks" class="view-section">
+      <h3 style="margin-bottom: 14px;">🎯 Available Tasks</h3>
+      <div id="tasks-list-container"></div>
+    </section>
+
+    <!-- CONVERT VIEW -->
+    <section id="view-convert" class="view-section">
+      <div class="card">
+        <h3 style="margin-bottom: 6px;">💱 Convert <span class="curr-name">SHIB</span></h3>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 16px;">
+          Exchange your coins into withdrawable Reward Credits.
+        </p>
+
+        <div class="input-group">
+          <label>Coins to Convert (Min: <span id="txt-min-convert">500</span> <span class="curr-name">SHIB</span>)</label>
+          <input type="number" id="inp-convert-amount" class="input-field" placeholder="e.g. 1000" oninput="calculateConversion()" />
+        </div>
+
+        <div style="background: #0b0f19; padding: 12px; border-radius: 8px; font-size: 12px; margin-bottom: 14px; border: 1px solid var(--border);">
+          <div style="display:flex; justify-content:space-between; margin-bottom: 4px;">
+            <span style="color:var(--text-muted);">Exchange Rate:</span>
+            <span id="txt-rate-display">1,000 = 10 Credits</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-weight:700;">
+            <span>Estimated Credits:</span>
+            <span id="txt-calc-credits" style="color: var(--success);">0 Credits</span>
+          </div>
+        </div>
+
+        <button class="btn-action" onclick="executeConversion()">Confirm Conversion</button>
+      </div>
+    </section>
+
+    <!-- LEADERBOARD VIEW (TOP 3 GLOWING PODIUM + LIST) -->
+    <section id="view-leaderboard" class="view-section">
+      <h3 style="margin-bottom: 16px;">🏆 Hall of Fame</h3>
+      
+      <!-- Top 3 Podium Container -->
+      <div class="podium-container" id="podium-area"></div>
+
+      <!-- Rank 4+ List -->
+      <div id="leaderboard-list">
+        <div style="text-align: center; color: var(--text-muted); font-size: 12px; padding: 15px;">Loading rankings...</div>
+      </div>
+    </section>
+
+    <!-- REFERRAL VIEW -->
+    <section id="view-referral" class="view-section">
+      <div class="card">
+        <h3 style="margin-bottom: 8px;">👥 Invite Friends</h3>
+        <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
+          Share your referral link to earn bonus tokens for every invited friend.
+        </p>
+
+        <div class="input-group">
+          <label>Your Personal Referral Link</label>
+          <input type="text" id="inp-ref-link" class="input-field" readonly />
+        </div>
+
+        <button class="btn-action" onclick="copyRefLink()" style="margin-bottom: 10px;">Copy Invite Link</button>
+
+        <div style="display:flex; justify-content:space-around; text-align:center; margin-top: 10px;">
+          <div>
+            <div style="font-size:18px; font-weight:700;" id="txt-ref-count">0</div>
+            <div style="font-size:11px; color:var(--text-muted);">Referrals</div>
+          </div>
+          <div>
+            <div style="font-size:18px; font-weight:700; color:var(--accent);" id="txt-ref-bonus">0</div>
+            <div style="font-size:11px; color:var(--text-muted);">Bonus Earned</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ACCOUNT & WALLET VIEW -->
+    <section id="view-account" class="view-section">
+      <div class="card">
+        <h3 style="margin-bottom: 14px;">👤 My Account & Wallet</h3>
+        <div style="font-size: 13px; line-height: 1.8;">
+          <div>Joined Date: <strong id="acc-joined">-</strong></div>
+          <div>Available Credits: <strong id="acc-credits" style="color:var(--success);">0.00</strong></div>
+        </div>
+
+        <div style="margin-top: 14px; display:flex; gap:10px;">
+          <button class="btn-action" onclick="openWithdrawModal()">Withdraw</button>
+          <button class="btn-action btn-secondary" onclick="openProofChannel()">Payment Proof 📢</button>
+        </div>
+      </div>
+
+      <!-- Direct Withdrawal History -->
+      <div class="card">
+        <h4 style="margin-bottom: 10px;">💳 Withdrawal History</h4>
+        <div id="user-withdrawals-history" style="max-height: 220px; overflow-y: auto; font-size: 12px;">
+          <div style="color: var(--text-muted); text-align: center; padding: 10px;">No withdrawal requests found.</div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- WITHDRAWAL MODAL -->
+  <div class="modal-backdrop" id="modal-withdraw">
+    <div class="modal-sheet">
+      <h3 style="margin-bottom: 8px;">💳 Request Withdrawal</h3>
+      <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;" id="txt-with-limits-info">
+        Select method and enter your payout details.
+      </p>
+
+      <div class="input-group">
+        <label>Payment Method</label>
+        <select id="sel-withdraw-method" class="input-field" onchange="onMethodChange()"></select>
+      </div>
+
+      <div class="input-group">
+        <label>Account Number / Wallet Address</label>
+        <input type="text" id="inp-withdraw-acc" class="input-field" placeholder="Enter payout account / address" />
+      </div>
+
+      <div class="input-group">
+        <label id="lbl-withdraw-credits">Credits to Redeem</label>
+        <input type="number" id="inp-withdraw-credits" class="input-field" placeholder="Enter amount" />
+      </div>
+
+      <button class="btn-action" onclick="submitWithdrawal()" style="margin-bottom: 10px;">Submit Request</button>
+      <button class="btn-action btn-secondary" onclick="closeWithdrawModal()">Cancel</button>
+    </div>
+  </div>
+
+  <!-- BOTTOM BAR -->
+  <nav class="bottom-nav">
+    <button class="nav-item active" onclick="switchNav('home')">
+      <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+      <span>Home</span>
+    </button>
+    <button class="nav-item" onclick="switchNav('mining')">
+      <svg viewBox="0 0 24 24"><path d="M20.54 5.23l-1.39-1.68C18.88 3.21 18.47 3 18 3H6c-.47 0-.88.21-1.16.55L3.46 5.23C3.17 5.57 3 6.02 3 6.5V19c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6.5c0-.48-.17-.93-.46-1.27zM12 17.5L6.5 12H10v-4h4v4h3.5L12 17.5z"/></svg>
+      <span>Mining</span>
+    </button>
+    <button class="nav-item" onclick="switchNav('tasks')">
+      <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l7.59-7.59L21 8l-9 9z"/></svg>
+      <span>Tasks</span>
+    </button>
+    <button class="nav-item" onclick="switchNav('leaderboard')">
+      <svg viewBox="0 0 24 24"><path d="M16 11V3H8v6H2v12h20V11h-6zm-6-6h4v14h-4V5zm-6 6h4v8H4v-8zm16 8h-4v-6h4v6z"/></svg>
+      <span>Top</span>
+    </button>
+    <button class="nav-item" onclick="switchNav('referral')">
+      <svg viewBox="0 0 24 24"><path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+      <span>Invite</span>
+    </button>
+    <button class="nav-item" onclick="switchNav('account')">
+      <svg viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+      <span>Wallet</span>
+    </button>
+  </nav>
+
+  <script>
+    /* ========================================================
+       FIREBASE CONFIGURATION
+    ======================================================== */
+    const firebaseConfig = {
+      apiKey: "AIzaSyBHaYXfhXhhN5GuvqNX-Wd8Q06FATHc9XM",
+      authDomain: "video-hub-91903.firebaseapp.com",
+      databaseURL: "https://video-hub-91903-default-rtdb.firebaseio.com",
+      projectId: "video-hub-91903",
+      storageBucket: "video-hub-91903.firebasestorage.app",
+      messagingSenderId: "243525313998",
+      appId: "1:243525313998:web:c874369e74bfab868e779f"
+    };
+
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    const tg = window.Telegram?.WebApp;
+    if (tg) { tg.expand(); tg.ready(); }
+
+    let appConfig = {
+      adsgramBlockId: "YOUR_ADSGRAM_BLOCK_ID",
+      adRewardAmount: 20,
+      botUsername: "ShibV33Bot",
+      proofChannelUrl: "",
+      shibPerCredit: 100,
+      minConvertShib: 500,
+      currencyName: "SHIB",
+      miningUpgradeCost: 500,
+      miningBaseRate: 10
+    };
+
+    let paymentMethods = [
+      { name: "bKash", min: 50, max: 5000 },
+      { name: "Nagad", min: 50, max: 5000 },
+      { name: "USDT", min: 100, max: 10000 }
+    ];
+
+    let userDoc = null;
+    let userId = "guest_user";
+    let energy = 1000;
+    const MAX_ENERGY = 1000;
+    let lastTapTimestamp = 0;
+    let pendingTaps = 0;
+    let adController = null;
+    const MINING_CYCLE_MS = 60 * 60 * 1000; // 1 Hour
+
+    function showToast(msg) {
+      const toast = document.getElementById("toast-el");
+      toast.innerText = msg;
+      toast.style.display = "block";
+      setTimeout(() => { toast.style.display = "none"; }, 2500);
+    }
+
+    function applyCurrencyName() {
+      document.querySelectorAll(".curr-name").forEach(el => el.innerText = appConfig.currencyName);
+    }
+
+    function listenSettings() {
+      db.collection("settings").doc("general").onSnapshot((doc) => {
+        if (!doc.exists) return;
+        const data = doc.data();
+        if (data.botUsername) {
+          appConfig.botUsername = data.botUsername;
+          updateRefLink();
+        }
+        if (data.currencyName) {
+          appConfig.currencyName = data.currencyName;
+          applyCurrencyName();
+        }
+        if (data.proofChannelUrl) appConfig.proofChannelUrl = data.proofChannelUrl;
+        if (data.shibPerCredit) appConfig.shibPerCredit = Number(data.shibPerCredit);
+        if (data.minConvertShib) {
+          appConfig.minConvertShib = Number(data.minConvertShib);
+          document.getElementById("txt-min-convert").innerText = appConfig.minConvertShib;
+        }
+        if (data.miningUpgradeCost) {
+          appConfig.miningUpgradeCost = Number(data.miningUpgradeCost);
+          document.getElementById("txt-upgrade-cost").innerText = appConfig.miningUpgradeCost;
+        }
+        if (data.miningBaseRate) appConfig.miningBaseRate = Number(data.miningBaseRate);
+
+        document.getElementById("txt-rate-display").innerText = `${appConfig.shibPerCredit * 10} = 10 Credits`;
+        updateMiningRateDisplay();
+      });
+
+      db.collection("settings").doc("adsgram").onSnapshot((doc) => {
+        if (!doc.exists) return;
+        const data = doc.data();
+        if (data.blockId) appConfig.adsgramBlockId = data.blockId;
+        if (data.rewardAmount) {
+          appConfig.adRewardAmount = Number(data.rewardAmount);
+          document.getElementById("btn-ad-reward-val").innerText = appConfig.adRewardAmount;
+        }
+        if (window.Adsgram) {
+          adController = window.Adsgram.init({ blockId: appConfig.adsgramBlockId });
+        }
+      });
+
+      db.collection("settings").doc("payment_methods").onSnapshot((doc) => {
+        if (doc.exists && doc.data().methods) {
+          paymentMethods = doc.data().methods;
+        }
+        renderPaymentMethodsDropdown();
+      });
+    }
+
+    function updateRefLink() {
+      const link = `https://t.me/${appConfig.botUsername}/app?startapp=ref_${userId}`;
+      document.getElementById("inp-ref-link").value = link;
+    }
+
+    function renderPaymentMethodsDropdown() {
+      const select = document.getElementById("sel-withdraw-method");
+      select.innerHTML = "";
+      paymentMethods.forEach((m) => {
+        const opt = document.createElement("option");
+        opt.value = m.name;
+        opt.text = `${m.name} (Min: ${m.min}, Max: ${m.max})`;
+        select.appendChild(opt);
+      });
+      onMethodChange();
+    }
+
+    function onMethodChange() {
+      const methodName = document.getElementById("sel-withdraw-method").value;
+      const m = paymentMethods.find(item => item.name === methodName) || paymentMethods[0];
+      if (m) {
+        document.getElementById("txt-with-limits-info").innerText = `${m.name} Minimum: ${m.min} Credits, Maximum: ${m.max} Credits.`;
+        document.getElementById("lbl-withdraw-credits").innerText = `Credits to Redeem (Min: ${m.min}, Max: ${m.max})`;
+      }
+    }
+
+    function openProofChannel() {
+      if (!appConfig.proofChannelUrl) {
+        showToast("Proof channel link is not set yet.");
+        return;
+      }
+      if (tg?.openTelegramLink) {
+        tg.openTelegramLink(appConfig.proofChannelUrl);
+      } else {
+        window.open(appConfig.proofChannelUrl, "_blank");
+      }
+    }
+
+    /* ========================================================
+       USER AUTH & DATA SYNC
+    ======================================================== */
+    async function initUser() {
+      const tgUser = tg?.initDataUnsafe?.user;
+      userId = tgUser?.id ? String(tgUser.id) : "demo_user_" + Math.floor(Math.random() * 10000);
+      const name = tgUser?.first_name || "Miner";
+      const username = tgUser?.username || "anonymous";
+      const photo = tgUser?.photo_url || "https://api.dicebear.com/7.x/bottts/svg?seed=" + userId;
+
+      // Only Name and Avatar/Logo
+      document.getElementById("u-name").innerText = name;
+      document.getElementById("u-avatar").src = photo;
+      updateRefLink();
+
+      const userRef = db.collection("users").doc(userId);
+      const snap = await userRef.get();
+
+      if (!snap.exists) {
+        let referrerId = null;
+        const startParam = tg?.initDataUnsafe?.start_param;
+        if (startParam && startParam.startsWith("ref_")) {
+          const candidate = startParam.replace("ref_", "");
+          if (candidate !== userId) referrerId = candidate;
+        }
+
+        const newUser = {
+          userId,
+          name,
+          username,
+          photo,
+          balance: 0,
+          rewardCredits: 0,
+          miningLevel: 1,
+          referralsCount: 0,
+          referredBy: referrerId,
+          lastDailyBonus: 0,
+          miningActive: false,
+          miningStartedAt: 0,
+          isSuspended: false,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        };
+
+        await userRef.set(newUser);
+
+        if (referrerId) {
+          const refRef = db.collection("users").doc(referrerId);
+          await db.runTransaction(async (tx) => {
+            const rSnap = await tx.get(refRef);
+            if (rSnap.exists) {
+              const currentBal = rSnap.data().balance || 0;
+              const refCount = (rSnap.data().referralsCount || 0) + 1;
+              tx.update(refRef, { balance: currentBal + 50, referralsCount: refCount });
+              const txRef = db.collection("transactions").doc();
+              tx.set(txRef, {
+                txId: txRef.id,
+                userId: referrerId,
+                amount: 50,
+                type: "REFERRAL",
+                status: "COMPLETED",
+                details: `Referral reward from ${userId}`,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
+              });
+            }
+          });
+        }
+      }
+
+      userRef.onSnapshot((doc) => {
+        if (!doc.exists) return;
+        userDoc = doc.data();
+        if (userDoc.isSuspended) {
+          document.body.innerHTML = "<div style='padding:50px; text-align:center;'><h2>Account Suspended</h2><p>Your account is banned.</p></div>";
+          return;
+        }
+        updateUI();
+      });
+
+      // Energy loop
+      setInterval(() => {
+        if (energy < MAX_ENERGY) {
+          energy = Math.min(MAX_ENERGY, energy + 1);
+          updateEnergyUI();
+        }
+      }, 2000);
+
+      setInterval(syncTapsToFirestore, 3000);
+
+      listenSettings();
+      loadTasks();
+      loadLeaderboard();
+      loadUserWithdrawals();
+    }
+
+    function updateUI() {
+      if (!userDoc) return;
+      document.getElementById("txt-balance").innerText = Number(userDoc.balance || 0).toLocaleString();
+      document.getElementById("txt-credits").innerText = Number(userDoc.rewardCredits || 0).toFixed(2);
+      document.getElementById("acc-credits").innerText = Number(userDoc.rewardCredits || 0).toFixed(2);
+      document.getElementById("txt-mining-lvl").innerText = `Level ${userDoc.miningLevel || 1}`;
+      document.getElementById("txt-ref-count").innerText = userDoc.referralsCount || 0;
+      document.getElementById("txt-ref-bonus").innerText = (userDoc.referralsCount || 0) * 50;
+
+      if (userDoc.createdAt?.toDate) {
+        document.getElementById("acc-joined").innerText = userDoc.createdAt.toDate().toLocaleDateString();
+      }
+      updateMiningRateDisplay();
+      updateMiningUI();
+    }
+
+    function getUserHourlyRate() {
+      const lvl = userDoc?.miningLevel || 1;
+      return (appConfig.miningBaseRate || 10) + ((lvl - 1) * 5);
+    }
+
+    function updateMiningRateDisplay() {
+      const rate = getUserHourlyRate();
+      document.getElementById("txt-mining-rate-display").innerText = `+${rate} / Hour`;
+    }
+
+    /* ========================================================
+       TAP TO EARN
+    ======================================================== */
+    const tapBtn = document.getElementById("btn-tap");
+    tapBtn.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      const now = Date.now();
+      if (now - lastTapTimestamp < 70) return;
+      lastTapTimestamp = now;
+
+      if (energy <= 0) {
+        showToast("Energy depleted! Please wait for recovery.");
+        return;
+      }
+
+      energy--;
+      pendingTaps++;
+      updateEnergyUI();
+
+      const rect = tapBtn.getBoundingClientRect();
+      const floatEl = document.createElement("div");
+      floatEl.className = "floating-text";
+      floatEl.innerText = "+1";
+      floatEl.style.left = `${e.clientX - rect.left + 20}px`;
+      floatEl.style.top = `${e.clientY - rect.top - 20}px`;
+      tapBtn.parentElement.appendChild(floatEl);
+      setTimeout(() => floatEl.remove(), 800);
+
+      const currentUiBal = parseInt(document.getElementById("txt-balance").innerText.replace(/,/g, "") || "0");
+      document.getElementById("txt-balance").innerText = (currentUiBal + 1).toLocaleString();
+
+      if (tg?.HapticFeedback) tg.HapticFeedback.impactOccurred("light");
+    });
+
+    function updateEnergyUI() {
+      document.getElementById("energy-bar").style.width = `${(energy / MAX_ENERGY) * 100}%`;
+      document.getElementById("txt-energy-ratio").innerText = `${energy} / ${MAX_ENERGY}`;
+    }
+
+    async function syncTapsToFirestore() {
+      if (pendingTaps <= 0) return;
+      const count = pendingTaps;
+      pendingTaps = 0;
+      try {
+        await db.collection("users").doc(userId).update({
+          balance: firebase.firestore.FieldValue.increment(count)
+        });
+      } catch (err) {
+        console.error("Tap sync fail", err);
+      }
+    }
+
+    /* ========================================================
+       DAILY BONUS & ADSGRAM
+    ======================================================== */
+    async function claimDailyBonus() {
+      const now = Date.now();
+      const last = userDoc?.lastDailyBonus || 0;
+      const oneDay = 24 * 60 * 60 * 1000;
+
+      if (now - last < oneDay) {
+        const leftH = Math.ceil((oneDay - (now - last)) / (1000 * 60 * 60));
+        showToast(`Already claimed today! Return in ${leftH}h.`);
+        return;
+      }
+
+      const reward = 30;
+      const userRef = db.collection("users").doc(userId);
+      const txRef = db.collection("transactions").doc();
+
+      await db.runTransaction(async (transaction) => {
+        transaction.update(userRef, {
+          balance: firebase.firestore.FieldValue.increment(reward),
+          lastDailyBonus: now
+        });
+        transaction.set(txRef, {
+          txId: txRef.id,
+          userId,
+          amount: reward,
+          type: "DAILY_BONUS",
+          status: "COMPLETED",
+          details: "Daily attendance reward",
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      });
+      showToast(`Success! +${reward} ${appConfig.currencyName} credited.`);
+    }
+
+    async function triggerOptionalAd() {
+      if (!adController) {
+        showToast("Ad network is loading or unavailable.");
+        return;
+      }
+      const btn = document.getElementById("btn-watch-ad");
+      btn.disabled = true;
+
+      adController.show().then(async () => {
+        const reward = appConfig.adRewardAmount;
+        const userRef = db.collection("users").doc(userId);
+        const txRef = db.collection("transactions").doc();
+
+        await db.runTransaction(async (transaction) => {
+          transaction.update(userRef, { balance: firebase.firestore.FieldValue.increment(reward) });
+          transaction.set(txRef, {
+            txId: txRef.id,
+            userId,
+            amount: reward,
+            type: "ADSGRAM_REWARD",
+            status: "COMPLETED",
+            details: "Sponsored video ad reward",
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        });
+
+        showToast(`Reward credited! +${reward} ${appConfig.currencyName}.`);
+        btn.disabled = false;
+      }).catch((err) => {
+        console.warn("AdsGram Event:", err);
+        showToast("Ad not completed. No reward issued.");
+        btn.disabled = false;
+      });
+    }
+
+    /* ========================================================
+       MINING ENGINE WITH LIVE TIMER ON THE BUTTON
+    ======================================================== */
+    let miningTicker = null;
+
+    function updateMiningUI() {
+      if (!userDoc) return;
+      const isActive = userDoc.miningActive;
+      const statusEl = document.getElementById("txt-mining-status");
+      const toggleBtn = document.getElementById("btn-toggle-mining");
+      const claimBtn = document.getElementById("btn-claim-mining");
+
+      if (isActive) {
+        statusEl.innerText = "Running ⛏️";
+        statusEl.style.color = "var(--success)";
+        toggleBtn.disabled = true;
+        claimBtn.disabled = false;
+        if (!miningTicker) {
+          renderMiningButtonTimer();
+          miningTicker = setInterval(renderMiningButtonTimer, 1000);
+        }
+      } else {
+        statusEl.innerText = "Inactive";
+        statusEl.style.color = "var(--text-muted)";
+        toggleBtn.disabled = false;
+        toggleBtn.innerText = "Start Mining";
+        claimBtn.disabled = true;
+        document.getElementById("txt-mined-tokens").innerText = `0.00 ${appConfig.currencyName}`;
+        if (miningTicker) { clearInterval(miningTicker); miningTicker = null; }
+      }
+    }
+
+    function renderMiningButtonTimer() {
+      if (!userDoc?.miningActive) return;
+      const start = userDoc.miningStartedAt || Date.now();
+      const elapsedMs = Date.now() - start;
+      const remainingMs = Math.max(0, MINING_CYCLE_MS - elapsedMs);
+
+      const totalSec = Math.floor(remainingMs / 1000);
+      const m = String(Math.floor(totalSec / 60)).padStart(2, "0");
+      const s = String(totalSec % 60).padStart(2, "0");
+
+      const toggleBtn = document.getElementById("btn-toggle-mining");
+      if (remainingMs > 0) {
+        toggleBtn.innerText = `⛏️ Mining... ${m}:${s}`;
+      } else {
+        toggleBtn.innerText = "⛏️ Cycle Finished! Claim Now";
+      }
+
+      // Calculate accumulated coins
+      const ratePerHour = getUserHourlyRate();
+      const elapsedSeconds = Math.floor(elapsedMs / 1000);
+      const mined = (Math.min(MINING_CYCLE_MS / 1000, elapsedSeconds) * (ratePerHour / 3600)).toFixed(2);
+      document.getElementById("txt-mined-tokens").innerText = `${mined} ${appConfig.currencyName}`;
+    }
+
+    async function toggleMining() {
+      await db.collection("users").doc(userId).update({
+        miningActive: true,
+        miningStartedAt: Date.now()
+      });
+      showToast("Cloud mining started!");
+    }
+
+    async function claimMining() {
+      if (!userDoc?.miningActive) return;
+      const start = userDoc.miningStartedAt || Date.now();
+      const elapsedSeconds = Math.floor((Date.now() - start) / 1000);
+      const ratePerHour = getUserHourlyRate();
+      const earned = Math.floor(Math.min(3600, elapsedSeconds) * (ratePerHour / 3600));
+
+      if (earned < 1) {
+        showToast("Wait until at least 1 coin is mined.");
+        return;
+      }
+
+      const userRef = db.collection("users").doc(userId);
+      const txRef = db.collection("transactions").doc();
+
+      await db.runTransaction(async (transaction) => {
+        transaction.update(userRef, {
+          balance: firebase.firestore.FieldValue.increment(earned),
+          miningActive: false,
+          miningStartedAt: 0
+        });
+        transaction.set(txRef, {
+          txId: txRef.id,
+          userId,
+          amount: earned,
+          type: "MINING",
+          status: "COMPLETED",
+          details: `Hourly mining simulation claim`,
+          createdAt: firebase.firestore.FieldValue.serverTimestamp()
+        });
+      });
+      showToast(`Successfully claimed +${earned} ${appConfig.currencyName}!`);
+    }
+
+    async function upgradeMiningLevel() {
+      const cost = appConfig.miningUpgradeCost || 500;
+      if ((userDoc?.balance || 0) < cost) {
+        showToast(`You need ${cost} ${appConfig.currencyName} to upgrade mining!`);
+        return;
+      }
+
+      const userRef = db.collection("users").doc(userId);
+      const currentLevel = userDoc?.miningLevel || 1;
+
+      try {
+        await db.runTransaction(async (tx) => {
+          const snap = await tx.get(userRef);
+          if (snap.data().balance < cost) throw new Error("Insufficient balance!");
+
+          tx.update(userRef, {
+            balance: firebase.firestore.FieldValue.increment(-cost),
+            miningLevel: currentLevel + 1
+          });
+        });
+        showToast(`🎉 Upgrade Successful: Level ${currentLevel + 1}`);
+      } catch (err) {
+        showToast(err.message || "Upgrade failed.");
+      }
+    }
+
+    /* ========================================================
+       TASKS
+    ======================================================== */
+    async function loadTasks() {
+      const container = document.getElementById("tasks-list-container");
+      db.collection("tasks").where("active", "==", true).onSnapshot(async (snapshot) => {
+        if (snapshot.empty) {
+          container.innerHTML = "<div style='color:var(--text-muted); text-align:center;'>No tasks available.</div>";
+          return;
+        }
+
+        const completedSnap = await db.collection("task_claims").where("userId", "==", userId).get();
+        const completedMap = {};
+        completedSnap.forEach(d => { completedMap[d.data().taskId] = true; });
+
+        let html = "";
+        snapshot.forEach((doc) => {
+          const t = doc.data();
+          const isDone = !!completedMap[doc.id];
+          html += `
+            <div class="card" style="margin-bottom: 12px;">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                <div>
+                  <div style="font-weight:700; font-size:14px;">${t.title}</div>
+                  <div style="font-size:12px; color:var(--text-muted); margin:4px 0;">${t.description}</div>
+                  <span class="badge badge-pending">+${t.reward} ${appConfig.currencyName}</span>
+                </div>
+                ${isDone 
+                  ? `<button class="btn-action" style="width:auto; padding:6px 12px; background:#10b98130; color:#10b981;" disabled>Done ✓</button>`
+                  : `<button class="btn-action" style="width:auto; padding:6px 14px;" onclick="executeTask('${doc.id}', '${t.url}', ${t.reward})">Start</button>`
+                }
+              </div>
+            </div>
+          `;
+        });
+        container.innerHTML = html;
+      });
+    }
+
+    async function executeTask(taskId, url, reward) {
+      if (url && url.startsWith("http")) window.open(url, "_blank");
+      showToast("Verifying completion...");
+
+      setTimeout(async () => {
+        const claimRef = db.collection("task_claims").doc(`${userId}_${taskId}`);
+        const userRef = db.collection("users").doc(userId);
+        const txRef = db.collection("transactions").doc();
+
+        try {
+          await db.runTransaction(async (transaction) => {
+            const check = await transaction.get(claimRef);
+            if (check.exists) throw new Error("Task already completed.");
+
+            transaction.set(claimRef, { userId, taskId, reward, claimedAt: firebase.firestore.FieldValue.serverTimestamp() });
+            transaction.update(userRef, { balance: firebase.firestore.FieldValue.increment(reward) });
+            transaction.set(txRef, {
+              txId: txRef.id,
+              userId,
+              amount: reward,
+              type: "TASK",
+              status: "COMPLETED",
+              details: `Task reward #${taskId}`,
+              createdAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+          });
+          showToast(`Task completed! +${reward} ${appConfig.currencyName}`);
+        } catch (err) {
+          showToast(err.message || "Failed to claim.");
+        }
+      }, 1500);
+    }
+
+    /* ========================================================
+       CONVERT
+    ======================================================== */
+    function calculateConversion() {
+      const val = parseInt(document.getElementById("inp-convert-amount").value || "0");
+      const credits = (val / appConfig.shibPerCredit).toFixed(2);
+      document.getElementById("txt-calc-credits").innerText = `${credits} Credits`;
+    }
+
+    async function executeConversion() {
+      const amount = parseInt(document.getElementById("inp-convert-amount").value || "0");
+      if (isNaN(amount) || amount < appConfig.minConvertShib) {
+        showToast(`Minimum conversion is ${appConfig.minConvertShib} ${appConfig.currencyName}.`);
+        return;
+      }
+      if ((userDoc?.balance || 0) < amount) {
+        showToast("Insufficient coin balance.");
+        return;
+      }
+
+      const credits = parseFloat((amount / appConfig.shibPerCredit).toFixed(2));
+      const userRef = db.collection("users").doc(userId);
+      const txRef = db.collection("transactions").doc();
+
+      try {
+        await db.runTransaction(async (transaction) => {
+          const uSnap = await transaction.get(userRef);
+          if (uSnap.data().balance < amount) throw new Error("Balance changed. Retry.");
+
+          transaction.update(userRef, {
+            balance: firebase.firestore.FieldValue.increment(-amount),
+            rewardCredits: firebase.firestore.FieldValue.increment(credits)
+          });
+
+          transaction.set(txRef, {
+            txId: txRef.id,
+            userId,
+            amount,
+            type: "CONVERSION",
+            status: "COMPLETED",
+            details: `Converted ${amount} ${appConfig.currencyName} into ${credits} Credits`,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        });
+
+        document.getElementById("inp-convert-amount").value = "";
+        document.getElementById("txt-calc-credits").innerText = "0 Credits";
+        showToast(`Converted into ${credits} Credits!`);
+      } catch (err) {
+        showToast(err.message || "Conversion failed.");
+      }
+    }
+
+    /* ========================================================
+       WITHDRAWALS & USER HISTORY
+    ======================================================== */
+    function openWithdrawModal() { document.getElementById("modal-withdraw").style.display = "flex"; }
+    function closeWithdrawModal() { document.getElementById("modal-withdraw").style.display = "none"; }
+
+    async function submitWithdrawal() {
+      const method = document.getElementById("sel-withdraw-method").value;
+      const account = document.getElementById("inp-withdraw-acc").value.trim();
+      const credits = parseFloat(document.getElementById("inp-withdraw-credits").value || "0");
+
+      const methodObj = paymentMethods.find(m => m.name === method) || { min: 50, max: 5000 };
+
+      if (!account) { showToast("Enter account details."); return; }
+      if (isNaN(credits) || credits < methodObj.min) { 
+        showToast(`Minimum withdrawal is ${methodObj.min} Credits.`); 
+        return; 
+      }
+      if (credits > methodObj.max) {
+        showToast(`Maximum withdrawal is ${methodObj.max} Credits.`); 
+        return; 
+      }
+      if ((userDoc?.rewardCredits || 0) < credits) { 
+        showToast("Insufficient credits."); 
+        return; 
+      }
+
+      const userRef = db.collection("users").doc(userId);
+      const withRef = db.collection("withdrawals").doc();
+      const txRef = db.collection("transactions").doc();
+
+      try {
+        await db.runTransaction(async (transaction) => {
+          transaction.update(userRef, { rewardCredits: firebase.firestore.FieldValue.increment(-credits) });
+          transaction.set(withRef, {
+            withdrawalId: withRef.id,
+            userId,
+            username: userDoc.username || "user",
+            method,
+            account,
+            credits,
+            status: "PENDING",
+            txHash: "",
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+          transaction.set(txRef, {
+            txId: txRef.id,
+            userId,
+            amount: credits,
+            type: "WITHDRAWAL",
+            status: "PENDING",
+            details: `Withdrawal via ${method} (${account})`,
+            createdAt: firebase.firestore.FieldValue.serverTimestamp()
+          });
+        });
+
+        closeWithdrawModal();
+        showToast("Withdrawal request submitted for review.");
+      } catch (err) {
+        showToast("Error processing request.");
+      }
+    }
+
+    function loadUserWithdrawals() {
+      db.collection("withdrawals")
+        .where("userId", "==", userId)
+        .orderBy("createdAt", "desc")
+        .onSnapshot((snap) => {
+          const container = document.getElementById("user-withdrawals-history");
+          if (snap.empty) {
+            container.innerHTML = "<div style='color:var(--text-muted); text-align:center; padding:10px;'>No withdrawals yet.</div>";
+            return;
+          }
+          let html = "";
+          snap.forEach(d => {
+            const w = d.data();
+            let badgeClass = "badge-pending";
+            if (w.status === "PAID") badgeClass = "badge-paid";
+            if (w.status === "REJECTED") badgeClass = "badge-rejected";
+
+            html += `
+              <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.05);">
+                <div>
+                  <div style="font-weight:700;">${w.method} - ${w.credits} Credits</div>
+                  <div style="font-size:10px; color:var(--text-muted);">${w.account}</div>
+                </div>
+                <div>
+                  <span class="badge ${badgeClass}">${w.status}</span>
+                </div>
+              </div>
+            `;
+          });
+          container.innerHTML = html;
+        });
+    }
+
+    /* ========================================================
+       TOP 3 GLOWING PUDDING PODIUM LEADERBOARD
+    ======================================================== */
+    function loadLeaderboard() {
+      db.collection("users").orderBy("balance", "desc").limit(15).onSnapshot((snap) => {
+        const podiumEl = document.getElementById("podium-area");
+        const listEl = document.getElementById("leaderboard-list");
+
+        if (snap.empty) {
+          podiumEl.innerHTML = "";
+          listEl.innerHTML = "<div style='color:var(--text-muted); text-align:center;'>No rankings yet.</div>";
+          return;
+        }
+
+        const users = [];
+        snap.forEach(d => users.push(d.data()));
+
+        // Render Top 3 Glowing Podium
+        if (users.length >= 1) {
+          const first = users[0];
+          const second = users[1] || null;
+          const third = users[2] || null;
+
+          let podiumHtml = "";
+
+          // #2 Silver (Left)
+          if (second) {
+            podiumHtml += `
+              <div class="pudding-top pudding-silver">
+                <div class="podium-badge">🥈</div>
+                <img class="podium-avatar" src="${second.photo || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + second.userId}" />
+                <div class="podium-name">${second.name || 'Miner'}</div>
+                <div class="podium-score">${Number(second.balance || 0).toLocaleString()}</div>
+              </div>
+            `;
+          } else {
+            podiumHtml += `<div></div>`;
+          }
+
+          // #1 Gold (Center, Elevated)
+          podiumHtml += `
+            <div class="pudding-top pudding-gold">
+              <div class="podium-badge">👑</div>
+              <img class="podium-avatar" src="${first.photo || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + first.userId}" />
+              <div class="podium-name">${first.name || 'Champion'}</div>
+              <div class="podium-score">🐕 ${Number(first.balance || 0).toLocaleString()}</div>
+            </div>
+          `;
+
+          // #3 Bronze (Right)
+          if (third) {
+            podiumHtml += `
+              <div class="pudding-top pudding-bronze">
+                <div class="podium-badge">🥉</div>
+                <img class="podium-avatar" src="${third.photo || 'https://api.dicebear.com/7.x/bottts/svg?seed=' + third.userId}" />
+                <div class="podium-name">${third.name || 'Miner'}</div>
+                <div class="podium-score">${Number(third.balance || 0).toLocaleString()}</div>
+              </div>
+            `;
+          } else {
+            podiumHtml += `<div></div>`;
+          }
+
+          podiumEl.innerHTML = podiumHtml;
+        }
+
+        // Render Rank 4+ List
+        let listHtml = "";
+        for (let i = 3; i < users.length; i++) {
+          const u = users[i];
+          listHtml += `
+            <div class="pudding-row">
+              <div style="display:flex; align-items:center; gap:12px;">
+                <div class="row-rank">#${i + 1}</div>
+                <div>
+                  <div style="font-weight:700; font-size:13px;">${u.name || 'Miner'}</div>
+                  <div style="font-size:11px; color:var(--text-muted);">Mining Lvl: ${u.miningLevel || 1}</div>
+                </div>
+              </div>
+              <div style="font-weight:700; font-size:13px; color:var(--accent);">
+                ${Number(u.balance || 0).toLocaleString()} ${appConfig.currencyName}
+              </div>
+            </div>
+          `;
+        }
+        listEl.innerHTML = listHtml;
+      });
+    }
+
+    function switchNav(viewId) {
+      document.querySelectorAll(".view-section").forEach(el => el.classList.remove("active"));
+      document.querySelectorAll(".nav-item").forEach(el => el.classList.remove("active"));
+
+      const targetView = document.getElementById(`view-${viewId}`);
+      if (targetView) targetView.classList.add("active");
+
+      const navBtn = Array.from(document.querySelectorAll(".nav-item")).find(b => b.innerText.toLowerCase().includes(viewId.substring(0, 3)));
+      if (navBtn) navBtn.classList.add("active");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function copyRefLink() {
+      navigator.clipboard.writeText(document.getElementById("inp-ref-link").value).then(() => showToast("Referral link copied!"));
+    }
+
+    window.addEventListener("DOMContentLoaded", initUser);
+  </script>
+</body>
+</html>
